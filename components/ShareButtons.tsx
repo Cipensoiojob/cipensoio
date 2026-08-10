@@ -1,6 +1,7 @@
 "use client";
 
 import { Share2 } from "lucide-react";
+import { SITE_URL } from "@/lib/types";
 
 type Props = {
   title?: string;
@@ -9,7 +10,7 @@ type Props = {
 
 export function ShareButtons({
   title = "Ho pubblicato un annuncio su CiPensoIo",
-  url = "https://cipensoio.it/pubblica",
+  url = `${SITE_URL}/pubblica`,
 }: Props) {
   const encodedText = encodeURIComponent(`${title} — ${url}`);
   const encodedUrl = encodeURIComponent(url);

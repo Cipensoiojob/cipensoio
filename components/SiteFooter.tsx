@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { SITE_URL } from "@/lib/types";
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const hostLabel = SITE_URL.replace(/^https?:\/\//, "");
 
   return (
     <footer className="mt-auto border-t border-[var(--line)] bg-[var(--brand-deep)] text-white">
@@ -81,8 +83,8 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <a href="https://cipensoio.it" className="hover:text-white">
-                cipensoio.it
+              <a href={SITE_URL} className="hover:text-white">
+                {hostLabel}
               </a>
             </li>
           </ul>

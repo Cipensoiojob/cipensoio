@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShareButtons } from "@/components/ShareButtons";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SITE_URL } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Annuncio inviato",
@@ -30,7 +31,7 @@ export default function PubblicaGraziePage() {
           </p>
           <ShareButtons
             title="Sto pubblicando un annuncio su CiPensoIo — portale gratis per assistenza, pet e lavoro vicino a casa"
-            url="https://cipensoio.it/pubblica"
+            url={`${SITE_URL}/pubblica`}
           />
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link

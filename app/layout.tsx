@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { SITE_URL } from "@/lib/types";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -16,7 +17,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cipensoio.it"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "CiPensoIo — Trova il lavoro o la persona giusta vicino a te",
     template: "%s | CiPensoIo",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "it_IT",
-    url: "https://cipensoio.it",
+    url: SITE_URL,
     siteName: "CiPensoIo",
     title: "CiPensoIo — Vicino a casa tua",
     description:

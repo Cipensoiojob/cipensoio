@@ -17,6 +17,7 @@ import {
   BRANCH_ID_TO_SLUG,
   INTENT_HINTS,
   INTENT_LABELS,
+  SITE_URL,
   getBranchMeta,
   WORK_TYPE_LABELS,
 } from "@/lib/types";
@@ -59,12 +60,12 @@ function buildJobPosting(listing: Listing) {
     hiringOrganization: {
       "@type": "Organization",
       name: listing.company_or_family_name,
-      sameAs: "https://cipensoio.it",
+      sameAs: SITE_URL,
     },
     jobLocation: location,
     employmentType: listing.work_type.toUpperCase(),
     industry: getBranchMeta(listing.macro_branch).label,
-    url: `https://cipensoio.it/annunci/${listing.slug}`,
+    url: `${SITE_URL}/annunci/${listing.slug}`,
     directApply: true,
     ...(listing.salary_custom
       ? {

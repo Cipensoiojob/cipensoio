@@ -11,6 +11,7 @@ import {
   getPublishedCount,
 } from "@/lib/listings";
 import { mergeSeoHubs } from "@/lib/seo";
+import { SITE_URL } from "@/lib/types";
 
 export default async function Home() {
   const [count, pairs, { listings: offro }, { listings: cerco }] =
@@ -28,12 +29,12 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "CiPensoIo",
-    url: "https://cipensoio.it",
+    url: SITE_URL,
     description:
       "Trova il lavoro o la persona giusta per te, vicino a casa tua.",
     potentialAction: {
       "@type": "SearchAction",
-      target: "https://cipensoio.it/cerca?q={search_term_string}",
+      target: `${SITE_URL}/cerca?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

@@ -154,7 +154,10 @@ export const INTENT_HINTS: Record<ListingIntent, string> = {
   offro: "Chi offre il proprio lavoro ed è già disponibile",
 };
 
-export const SITE_URL = "https://cipensoio.it";
+/** URL canonico del sito (production = Vercel finché non c’è dominio custom). */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://cipensoio.vercel.app"
+).replace(/\/$/, "");
 
 export const PUBLIC_LISTING_COLUMNS =
   "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at, status, intent" as const;
