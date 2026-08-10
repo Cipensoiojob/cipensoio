@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, MapPin, Radio } from "lucide-react";
 import type { ListingPublic } from "@/lib/types";
-import { MACRO_BRANCHES, WORK_TYPE_LABELS } from "@/lib/types";
-
-function branchMeta(id: ListingPublic["macro_branch"]) {
-  return MACRO_BRANCHES.find((b) => b.id === id);
-}
+import { getBranchMeta, WORK_TYPE_LABELS } from "@/lib/types";
 
 type Props = {
   listings: ListingPublic[];
@@ -43,7 +39,7 @@ export function LatestListings({ listings, fromFallback }: Props) {
 
         <ul className="mt-8 grid gap-3">
           {listings.map((listing) => {
-            const meta = branchMeta(listing.macro_branch);
+            const meta = getBranchMeta(listing.macro_branch);
             return (
               <li key={listing.id}>
                 <Link
@@ -54,9 +50,9 @@ export function LatestListings({ listings, fromFallback }: Props) {
                     <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
                       <span
                         className="rounded-md px-2 py-0.5 text-white"
-                        style={{ backgroundColor: meta?.color }}
+                        style={{ backgroundColor: meta.color }}
                       >
-                        {meta?.short}
+                        {meta.short}
                       </span>
                       {listing.is_verified && (
                         <span className="inline-flex items-center gap-1 text-[var(--brand)]">

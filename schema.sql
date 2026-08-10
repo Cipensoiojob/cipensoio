@@ -114,11 +114,13 @@ CREATE POLICY "listings_public_read"
   TO anon, authenticated
   USING (true);
 
+-- FASE 2: insert aperto ad anon per form /pubblica (hardening auth in FASE 3)
 DROP POLICY IF EXISTS "listings_auth_insert" ON public.listings;
-CREATE POLICY "listings_auth_insert"
+DROP POLICY IF EXISTS "listings_public_insert" ON public.listings;
+CREATE POLICY "listings_public_insert"
   ON public.listings
   FOR INSERT
-  TO authenticated
+  TO anon, authenticated
   WITH CHECK (true);
 
 DROP POLICY IF EXISTS "listings_auth_update" ON public.listings;
@@ -129,8 +131,10 @@ CREATE POLICY "listings_auth_update"
   USING (true)
   WITH CHECK (true);
 
--- Grant sulla vista pubblica
+-- Grant sulla vista pubblica e insert FASE 2
 GRANT SELECT ON public.listings_public TO anon, authenticated;
+GRANT SELECT, INSERT ON public.listings TO anon, authenticated;
+GRANT UPDATE ON public.listings TO authenticated;
 
 -- Seed demo (opzionale — commenta in produzione)
 INSERT INTO public.listings (

@@ -23,7 +23,7 @@ export function SiteFooter() {
           </p>
           <ul className="mt-3 space-y-2 text-sm text-white/85">
             <li>
-              <Link href="/assistenza" className="hover:text-white">
+              <Link href="/persona-assistenza" className="hover:text-white">
                 Assistenza & Persona
               </Link>
             </li>
@@ -33,7 +33,7 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/lavoro" className="hover:text-white">
+              <Link href="/lavoro-tradizionale" className="hover:text-white">
                 Lavoro & Tech
               </Link>
             </li>

@@ -30,16 +30,51 @@ export type ListingPublic = {
   created_at: string;
 };
 
+/** Annuncio completo incluso contatti (dettaglio / pubblicazione). */
+export type Listing = ListingPublic & {
+  contact_phone: string;
+  contact_whatsapp: string | null;
+};
+
+/** Segmenti URL kebab-case dei macro-rami (FASE 2). */
+export type BranchSlug =
+  | "persona-assistenza"
+  | "pet-home"
+  | "lavoro-tradizionale";
+
+export const BRANCH_SLUGS: readonly BranchSlug[] = [
+  "persona-assistenza",
+  "pet-home",
+  "lavoro-tradizionale",
+] as const;
+
+export const BRANCH_SLUG_TO_ID: Record<BranchSlug, MacroBranch> = {
+  "persona-assistenza": "persona_assistenza",
+  "pet-home": "pet_home",
+  "lavoro-tradizionale": "lavoro_tradizionale",
+};
+
+export const BRANCH_ID_TO_SLUG: Record<MacroBranch, BranchSlug> = {
+  persona_assistenza: "persona-assistenza",
+  pet_home: "pet-home",
+  lavoro_tradizionale: "lavoro-tradizionale",
+};
+
+export function isBranchSlug(value: string): value is BranchSlug {
+  return (BRANCH_SLUGS as readonly string[]).includes(value);
+}
+
 export const MACRO_BRANCHES = [
   {
     id: "persona_assistenza" as const,
-    href: "/assistenza",
+    href: "/persona-assistenza",
     label: "Assistenza & Persona",
     short: "Assistenza",
     description:
       "Badanti, colf, babysitter e OSS vicino a casa tua.",
     color: "var(--branch-assistenza)",
     accent: "var(--branch-assistenza-accent)",
+    categories: ["badante", "colf", "babysitter", "oss"],
   },
   {
     id: "pet_home" as const,
@@ -50,18 +85,24 @@ export const MACRO_BRANCHES = [
       "Dog/cat sitter, stiro, giardinaggio e piccole manutenzioni.",
     color: "var(--branch-pet)",
     accent: "var(--branch-pet-accent)",
+    categories: ["dogsitter", "catsitter", "stiro", "giardinaggio"],
   },
   {
     id: "lavoro_tradizionale" as const,
-    href: "/lavoro",
+    href: "/lavoro-tradizionale",
     label: "Lavoro & Tech",
     short: "Lavoro",
     description:
       "Tech/AI, full remote, ristorazione, commerciale ed entry-level.",
     color: "var(--branch-lavoro)",
     accent: "var(--branch-lavoro-accent)",
+    categories: ["ai_engineer", "sviluppatore", "commerciale", "ristorazione"],
   },
 ] as const;
+
+export function getBranchMeta(id: MacroBranch) {
+  return MACRO_BRANCHES.find((b) => b.id === id)!;
+}
 
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   full_time: "Full time",
@@ -70,3 +111,11 @@ export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   ad_ore: "Ad ore",
   turni: "Turni",
 };
+
+export const WORK_TYPES = Object.keys(WORK_TYPE_LABELS) as WorkType[];
+
+export const PUBLIC_LISTING_COLUMNS =
+  "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at" as const;
+
+export const FULL_LISTING_COLUMNS =
+  `${PUBLIC_LISTING_COLUMNS}, contact_phone, contact_whatsapp` as const;

@@ -14,13 +14,19 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-[var(--muted)] md:flex">
-          <Link href="/assistenza" className="transition-colors hover:text-[var(--brand)]">
+          <Link
+            href="/persona-assistenza"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
             Assistenza
           </Link>
           <Link href="/pet-home" className="transition-colors hover:text-[var(--brand)]">
             Pet & Casa
           </Link>
-          <Link href="/lavoro" className="transition-colors hover:text-[var(--brand)]">
+          <Link
+            href="/lavoro-tradizionale"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
             Lavoro
           </Link>
         </nav>
