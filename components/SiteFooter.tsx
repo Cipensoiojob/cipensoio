@@ -23,23 +23,38 @@ export function SiteFooter() {
           </p>
           <ul className="mt-3 space-y-2 text-sm text-white/85">
             <li>
-              <Link href="/persona-assistenza" className="hover:text-white">
-                Assistenza & Persona
+              <Link href="/assistenza-care" className="hover:text-white">
+                Assistenza Care
               </Link>
             </li>
             <li>
-              <Link href="/pet-home" className="hover:text-white">
-                Pet & Home Care
+              <Link href="/babysitter" className="hover:text-white">
+                Babysitter
               </Link>
             </li>
             <li>
-              <Link href="/lavoro-tradizionale" className="hover:text-white">
-                Lavoro & Tech
+              <Link href="/pet-sitter" className="hover:text-white">
+                Pet sitter
+              </Link>
+            </li>
+            <li>
+              <Link href="/professionisti" className="hover:text-white">
+                Professionisti
+              </Link>
+            </li>
+            <li>
+              <Link href="/lavoro" className="hover:text-white">
+                Lavoro
+              </Link>
+            </li>
+            <li>
+              <Link href="/disponibili" className="hover:text-white">
+                Disponibili
               </Link>
             </li>
             <li>
               <Link href="/pubblica" className="hover:text-white">
-                Pubblica un annuncio
+                Pubblica
               </Link>
             </li>
           </ul>

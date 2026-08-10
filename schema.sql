@@ -37,6 +37,13 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Cerco (famiglia/azienda) | Offro (operatore in vetrina)
+DO $$ BEGIN
+  CREATE TYPE public.listing_intent AS ENUM ('cerco', 'offro');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 -- Tabella principale annunci
 CREATE TABLE IF NOT EXISTS public.listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -57,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.listings (
   is_featured BOOLEAN NOT NULL DEFAULT false,
   is_verified BOOLEAN NOT NULL DEFAULT false,
   status public.listing_status NOT NULL DEFAULT 'pending',
+  intent public.listing_intent NOT NULL DEFAULT 'cerco',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT listings_slug_unique UNIQUE (slug),
@@ -65,9 +73,12 @@ CREATE TABLE IF NOT EXISTS public.listings (
   CONSTRAINT listings_slug_seo CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
 );
 
--- Migrazione FASE 3 su DB già esistenti
+-- Migrazioni su DB già esistenti
 ALTER TABLE public.listings
   ADD COLUMN IF NOT EXISTS status public.listing_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.listings
+  ADD COLUMN IF NOT EXISTS intent public.listing_intent NOT NULL DEFAULT 'cerco';
 
 -- Seed / annunci storici: marcali pubblicati se ancora al default senza revisione esplicito
 -- (esegui una sola volta in produzione dopo il primo deploy FASE 3, poi commenta)
@@ -104,6 +115,9 @@ CREATE INDEX IF NOT EXISTS listings_city_branch_idx
 CREATE INDEX IF NOT EXISTS listings_status_idx
   ON public.listings (status, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS listings_intent_idx
+  ON public.listings (intent, status, created_at DESC);
+
 -- Vista pubblica: SOLO published, senza contatti
 -- DROP necessario: CREATE OR REPLACE non può inserire/riordinare colonne (errore 42P16)
 DROP VIEW IF EXISTS public.listings_public;
@@ -127,7 +141,8 @@ SELECT
   is_featured,
   is_verified,
   created_at,
-  status
+  status,
+  intent
 FROM public.listings
 WHERE status = 'published';
 
@@ -172,7 +187,7 @@ INSERT INTO public.listings (
   macro_branch, category, title, slug, description,
   company_or_family_name, location_city, location_zone,
   is_remote, work_type, salary_custom, contact_phone, contact_whatsapp,
-  is_featured, is_verified, status
+  is_featured, is_verified, status, intent
 ) VALUES
 (
   'persona_assistenza',
@@ -190,7 +205,8 @@ INSERT INTO public.listings (
   '+393400000001',
   true,
   true,
-  'published'
+  'published',
+  'cerco'
 ),
 (
   'pet_home',
@@ -208,7 +224,8 @@ INSERT INTO public.listings (
   NULL,
   false,
   true,
-  'published'
+  'published',
+  'cerco'
 ),
 (
   'lavoro_tradizionale',
@@ -226,6 +243,103 @@ INSERT INTO public.listings (
   NULL,
   true,
   false,
-  'published'
+  'published',
+  'cerco'
+),
+(
+  'persona_assistenza',
+  'badante',
+  'Badante disponibile a Milano — Maria',
+  'badante-disponibile-milano-maria-101',
+  'Ho esperienza con anziani e convivenza. Disponibile da subito, preferisco contatto WhatsApp.',
+  'Maria Rossi',
+  'Milano',
+  'Città Studi',
+  false,
+  'convivenza',
+  'Da concordare / CCNL',
+  '+393401010101',
+  '+393401010101',
+  true,
+  true,
+  'published',
+  'offro'
+),
+(
+  'pet_home',
+  'idraulico',
+  'Idraulico per piccoli interventi a Milano',
+  'idraulico-milano-disponibile-104',
+  'Riparazioni perdite, rubinetti, scarichi. Interventi rapidi in città.',
+  'Andrea Neri',
+  'Milano',
+  NULL,
+  false,
+  'ad_ore',
+  'Preventivo',
+  '+393401010104',
+  '+393401010104',
+  true,
+  false,
+  'published',
+  'offro'
 )
 ON CONFLICT (slug) DO NOTHING;
+
+
+-- =============================================================================
+-- Analytics (vedi anche schema-analytics.sql)
+-- =============================================================================
+-- =============================================================================
+-- CiPensoIo — Analytics (eventi di navigazione / ricerca)
+-- Esegui in: Supabase Dashboard → SQL Editor → Run
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS public.site_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL
+    CHECK (event_type IN ('page_view', 'search', 'listing_view')),
+  path TEXT,
+  query TEXT,
+  city TEXT,
+  intent TEXT,
+  listing_slug TEXT,
+  referrer TEXT,
+  session_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS site_events_created_at_idx
+  ON public.site_events (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS site_events_type_created_idx
+  ON public.site_events (event_type, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS site_events_session_idx
+  ON public.site_events (session_id, created_at DESC);
+
+ALTER TABLE public.site_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "site_events_anon_insert" ON public.site_events;
+CREATE POLICY "site_events_anon_insert"
+  ON public.site_events
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    event_type IN ('page_view', 'search', 'listing_view')
+    AND char_length(coalesce(path, '')) <= 500
+    AND char_length(coalesce(query, '')) <= 200
+    AND char_length(coalesce(city, '')) <= 120
+    AND char_length(coalesce(intent, '')) <= 40
+    AND char_length(coalesce(listing_slug, '')) <= 200
+    AND char_length(coalesce(referrer, '')) <= 500
+    AND char_length(coalesce(session_id, '')) <= 80
+  );
+
+-- Nessuna policy SELECT per anon: lettura solo via service role (admin).
+
+GRANT INSERT ON public.site_events TO anon, authenticated;
+GRANT ALL ON public.site_events TO service_role;
+
+COMMENT ON TABLE public.site_events IS
+  'Eventi analytics first-party (page view, search, listing view). Nessun PII.';

@@ -7,6 +7,7 @@ import {
 import { buildListingSlug } from "@/lib/slug";
 import type {
   Listing,
+  ListingIntent,
   ListingPublic,
   ListingStatus,
   MacroBranch,
@@ -36,6 +37,7 @@ const FALLBACK_LISTINGS: Listing[] = [
     is_featured: true,
     is_verified: true,
     status: "published",
+    intent: "cerco",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000001",
     contact_whatsapp: "+393400000001",
@@ -58,6 +60,7 @@ const FALLBACK_LISTINGS: Listing[] = [
     is_featured: false,
     is_verified: true,
     status: "published",
+    intent: "cerco",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000002",
     contact_whatsapp: null,
@@ -80,9 +83,56 @@ const FALLBACK_LISTINGS: Listing[] = [
     is_featured: true,
     is_verified: false,
     status: "published",
+    intent: "cerco",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000003",
     contact_whatsapp: null,
+  },
+  {
+    id: "fallback-4",
+    macro_branch: "persona_assistenza",
+    category: "badante",
+    title: "Badante disponibile a Milano — Maria",
+    slug: "badante-disponibile-milano-maria-101",
+    description:
+      "Ho esperienza con anziani e convivenza. Disponibile da subito, preferisco contatto WhatsApp.",
+    company_or_family_name: "Maria Rossi",
+    location_city: "Milano",
+    location_zone: "Città Studi",
+    is_remote: false,
+    work_type: "convivenza",
+    salary_custom: "Da concordare / CCNL",
+    apply_external_url: null,
+    is_featured: true,
+    is_verified: true,
+    status: "published",
+    intent: "offro",
+    created_at: new Date().toISOString(),
+    contact_phone: "+393401010101",
+    contact_whatsapp: "+393401010101",
+  },
+  {
+    id: "fallback-5",
+    macro_branch: "pet_home",
+    category: "idraulico",
+    title: "Idraulico per piccoli interventi a Milano",
+    slug: "idraulico-milano-disponibile-104",
+    description:
+      "Riparazioni perdite, rubinetti, scarichi. Interventi rapidi in città.",
+    company_or_family_name: "Andrea Neri",
+    location_city: "Milano",
+    location_zone: null,
+    is_remote: false,
+    work_type: "ad_ore",
+    salary_custom: "Preventivo",
+    apply_external_url: null,
+    is_featured: true,
+    is_verified: false,
+    status: "published",
+    intent: "offro",
+    created_at: new Date().toISOString(),
+    contact_phone: "+393401010104",
+    contact_whatsapp: "+393401010104",
   },
 ];
 
@@ -93,6 +143,10 @@ function toPublic(listing: Listing): ListingPublic {
 
 export type ListingFilters = {
   branch?: MacroBranch;
+  category?: string;
+  /** Più categorie (verticale Care, Professionisti, …). */
+  categories?: string[];
+  intent?: ListingIntent;
   q?: string;
   city?: string;
   zone?: string;
@@ -105,6 +159,24 @@ function filterFallback(filters: ListingFilters): ListingPublic[] {
 
   if (filters.branch) {
     rows = rows.filter((r) => r.macro_branch === filters.branch);
+  }
+  if (filters.intent) {
+    rows = rows.filter((r) => r.intent === filters.intent);
+  }
+  if (filters.category?.trim()) {
+    const cat = filters.category.trim().toLowerCase().replace(/-/g, "_");
+    rows = rows.filter(
+      (r) =>
+        r.category.toLowerCase() === cat ||
+        r.category.toLowerCase().replace(/_/g, "-") ===
+          filters.category!.trim().toLowerCase(),
+    );
+  }
+  if (filters.categories?.length) {
+    const set = new Set(
+      filters.categories.map((c) => c.toLowerCase().replace(/-/g, "_")),
+    );
+    rows = rows.filter((r) => set.has(r.category.toLowerCase()));
   }
   if (filters.workType) {
     rows = rows.filter((r) => r.work_type === filters.workType);
@@ -161,6 +233,18 @@ export async function getListings(
     if (filters.branch) {
       query = query.eq("macro_branch", filters.branch);
     }
+    if (filters.intent) {
+      query = query.eq("intent", filters.intent);
+    }
+    if (filters.category?.trim()) {
+      const cat = filters.category.trim().toLowerCase().replace(/-/g, "_");
+      query = query.eq("category", cat);
+    } else if (filters.categories?.length) {
+      const cats = filters.categories.map((c) =>
+        c.toLowerCase().replace(/-/g, "_"),
+      );
+      query = query.in("category", cats);
+    }
     if (filters.workType) {
       query = query.eq("work_type", filters.workType);
     }
@@ -183,7 +267,7 @@ export async function getListings(
       return { listings: filterFallback(filters), fromFallback: true };
     }
 
-    if (!data.length && (filters.branch || filters.q || filters.city)) {
+    if (!data.length && (filters.branch || filters.q || filters.city || filters.category || filters.categories?.length)) {
       return { listings: [], fromFallback: false };
     }
 
@@ -277,6 +361,61 @@ export async function getPublishedListingSlugs(): Promise<
   }
 }
 
+/** Conteggio annunci published (social proof). */
+export async function getPublishedCount(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").length;
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { count, error } = await supabase
+      .from("listings_public")
+      .select("id", { count: "exact", head: true });
+
+    if (error || count == null) {
+      return FALLBACK_LISTINGS.filter((l) => l.status === "published").length;
+    }
+    return count;
+  } catch {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").length;
+  }
+}
+
+/** Coppie categoria+città dagli annunci published (SEO hubs). */
+export async function getCategoryCityPairs(): Promise<
+  { category: string; city: string }[]
+> {
+  if (!isSupabaseConfigured()) {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+      (l) => ({ category: l.category, city: l.location_city }),
+    );
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("listings_public")
+      .select("category, location_city")
+      .limit(500);
+
+    if (error || !data?.length) {
+      return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+        (l) => ({ category: l.category, city: l.location_city }),
+      );
+    }
+
+    return data.map((row) => ({
+      category: row.category as string,
+      city: row.location_city as string,
+    }));
+  } catch {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+      (l) => ({ category: l.category, city: l.location_city }),
+    );
+  }
+}
+
 export type CreateListingInput = {
   macro_branch: MacroBranch;
   category: string;
@@ -290,6 +429,7 @@ export type CreateListingInput = {
   salary_custom?: string | null;
   contact_phone: string;
   contact_whatsapp?: string | null;
+  intent?: ListingIntent;
 };
 
 async function ensureUniqueSlug(
@@ -369,6 +509,7 @@ export async function createListing(
       is_featured: false,
       is_verified: false,
       status: "pending" as const,
+      intent: input.intent === "offro" ? ("offro" as const) : ("cerco" as const),
     };
 
     // RLS: SELECT solo published → non usare .select() dopo insert

@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { MapPin, Search } from "lucide-react";
+import { SearchSuggestionChips } from "@/components/SearchSuggestionChips";
 
 export function HeroSearch() {
   return (
     <section className="relative isolate overflow-hidden">
-      {/* Atmosphere — full-bleed gradient + soft neighborhood orbs */}
       <div
         className="pointer-events-none absolute inset-0 -z-10"
         aria-hidden
@@ -26,13 +27,34 @@ export function HeroSearch() {
         </p>
 
         <h1 className="animate-rise animate-rise-delay-1 mt-5 max-w-2xl font-[family-name:var(--font-syne)] text-2xl font-semibold leading-tight tracking-tight text-[var(--foreground)] sm:text-3xl md:text-4xl">
-          Trova il lavoro o la persona giusta per te, vicino a casa tua.
+          Trova badante, colf o lavoro vicino a casa — anche solo con il
+          telefono.
         </h1>
 
         <p className="animate-rise animate-rise-delay-2 mt-4 max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-          Assistenza, pet & home care e lavoro di nicchia — gratis in fase di
-          lancio, pensato per la tua zona.
+          Pochi passi, tasti grandi, WhatsApp. Gratis in fase di lancio.
         </p>
+
+        <div className="animate-rise animate-rise-delay-2 mt-5 flex flex-wrap items-center gap-3">
+          <Link
+            href="/assistenza-care#offro"
+            className="inline-flex min-h-12 items-center rounded-xl bg-[var(--brand)] px-5 py-3 text-base font-semibold text-white hover:bg-[var(--brand-deep)]"
+          >
+            Offro lavoro
+          </Link>
+          <Link
+            href="/assistenza-care#cerco"
+            className="inline-flex min-h-12 items-center rounded-xl border border-[var(--line)] bg-white/80 px-5 py-3 text-base font-semibold text-[var(--brand-deep)]"
+          >
+            Cerco lavoro
+          </Link>
+          <Link
+            href="/babysitter"
+            className="inline-flex min-h-12 items-center rounded-xl border border-transparent px-3 py-3 text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]"
+          >
+            Babysitter
+          </Link>
+        </div>
 
         <form
           action="/cerca"
@@ -41,32 +63,38 @@ export function HeroSearch() {
           role="search"
           aria-label="Ricerca unificata CiPensoIo"
         >
-          <label className="flex flex-1 items-center gap-2 px-3 py-2">
+          <label className="flex flex-1 items-center gap-2 px-3 py-3">
             <Search className="size-5 shrink-0 text-[var(--brand)]" aria-hidden />
             <input
               type="search"
               name="q"
-              placeholder="Cosa cerchi? Es. badante, dog sitter, AI…"
+              placeholder="Scrivi: badante, colf, dog sitter…"
               className="w-full bg-transparent text-base outline-none placeholder:text-[var(--muted)]"
+              autoComplete="off"
             />
           </label>
           <span className="hidden h-8 w-px bg-[var(--line)] sm:block" aria-hidden />
-          <label className="flex flex-1 items-center gap-2 px-3 py-2 sm:max-w-[200px]">
+          <label className="flex flex-1 items-center gap-2 px-3 py-3 sm:max-w-[200px]">
             <MapPin className="size-5 shrink-0 text-[var(--accent)]" aria-hidden />
             <input
               type="text"
               name="citta"
-              placeholder="Città o zona"
+              placeholder="La tua città"
               className="w-full bg-transparent text-base outline-none placeholder:text-[var(--muted)]"
+              autoComplete="address-level2"
             />
           </label>
           <button
             type="submit"
-            className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-deep)]"
+            className="min-h-12 rounded-xl bg-[var(--brand)] px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-[var(--brand-deep)]"
           >
             Cerca
           </button>
         </form>
+
+        <div className="animate-rise animate-rise-delay-3 max-w-2xl">
+          <SearchSuggestionChips />
+        </div>
       </div>
     </section>
   );

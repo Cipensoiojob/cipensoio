@@ -12,6 +12,9 @@ export type WorkType =
 
 export type ListingStatus = "pending" | "published" | "rejected";
 
+/** Cerco = domanda (famiglia/azienda). Offro = vetrina operatore. */
+export type ListingIntent = "cerco" | "offro";
+
 /** Campi pubblici (senza contatti protetti). */
 export type ListingPublic = {
   id: string;
@@ -30,6 +33,7 @@ export type ListingPublic = {
   is_featured: boolean;
   is_verified: boolean;
   status: ListingStatus;
+  intent: ListingIntent;
   created_at: string;
 };
 
@@ -70,36 +74,53 @@ export function isBranchSlug(value: string): value is BranchSlug {
 export const MACRO_BRANCHES = [
   {
     id: "persona_assistenza" as const,
-    href: "/persona-assistenza",
+    href: "/assistenza-care",
     label: "Assistenza & Persona",
     short: "Assistenza",
     description:
-      "Badanti, colf, babysitter e OSS vicino a casa tua.",
+      "Badanti, colf, OSS (Care) e babysitter su percorsi separati.",
     color: "var(--branch-assistenza)",
     accent: "var(--branch-assistenza-accent)",
-    categories: ["badante", "colf", "babysitter", "oss"],
+    categories: ["badante", "colf", "oss", "babysitter"],
   },
   {
     id: "pet_home" as const,
-    href: "/pet-home",
-    label: "Pet & Home Care",
+    href: "/pet-sitter",
+    label: "Pet & Professionisti",
     short: "Pet & Casa",
     description:
-      "Dog/cat sitter, stiro, giardinaggio e piccole manutenzioni.",
+      "Pet sitter e professionisti casa (idraulico, elettricista…).",
     color: "var(--branch-pet)",
     accent: "var(--branch-pet-accent)",
-    categories: ["dogsitter", "catsitter", "stiro", "giardinaggio"],
+    categories: [
+      "dogsitter",
+      "catsitter",
+      "stiro",
+      "giardinaggio",
+      "idraulico",
+      "elettricista",
+      "pulizie",
+      "manutentore",
+    ],
   },
   {
     id: "lavoro_tradizionale" as const,
-    href: "/lavoro-tradizionale",
+    href: "/lavoro",
     label: "Lavoro & Tech",
     short: "Lavoro",
     description:
-      "Tech/AI, full remote, ristorazione, commerciale ed entry-level.",
+      "Tech/AI, ristorazione, commerciale ed entry-level.",
     color: "var(--branch-lavoro)",
     accent: "var(--branch-lavoro-accent)",
-    categories: ["ai_engineer", "sviluppatore", "commerciale", "ristorazione"],
+    categories: [
+      "ai_engineer",
+      "sviluppatore",
+      "commerciale",
+      "ristorazione",
+      "cameriere",
+      "barista",
+      "manutentore",
+    ],
   },
 ] as const;
 
@@ -123,10 +144,20 @@ export const STATUS_LABELS: Record<ListingStatus, string> = {
   rejected: "Rifiutato",
 };
 
+export const INTENT_LABELS: Record<ListingIntent, string> = {
+  cerco: "Cerco lavoro",
+  offro: "Offro lavoro",
+};
+
+export const INTENT_HINTS: Record<ListingIntent, string> = {
+  cerco: "Chi cerca una persona o un servizio da assumere",
+  offro: "Chi offre il proprio lavoro ed è già disponibile",
+};
+
 export const SITE_URL = "https://cipensoio.it";
 
 export const PUBLIC_LISTING_COLUMNS =
-  "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at, status" as const;
+  "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at, status, intent" as const;
 
 export const FULL_LISTING_COLUMNS =
   `${PUBLIC_LISTING_COLUMNS}, contact_phone, contact_whatsapp` as const;

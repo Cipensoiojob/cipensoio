@@ -12,6 +12,7 @@ import {
   logoutModerator,
   moderateListing,
 } from "@/app/admin/moderazione/actions";
+import { AdminNav } from "@/components/AdminNav";
 import type { Listing, ListingStatus } from "@/lib/types";
 import {
   STATUS_LABELS,
@@ -52,6 +53,7 @@ export function ModerationQueue({
 
   return (
     <div className="mx-auto w-full max-w-4xl">
+      <AdminNav active="moderazione" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-[family-name:var(--font-syne)] text-2xl font-semibold tracking-tight">

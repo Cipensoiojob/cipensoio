@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, MapPin } from "lucide-react";
 import type { ListingPublic } from "@/lib/types";
-import { getBranchMeta, WORK_TYPE_LABELS } from "@/lib/types";
+import { INTENT_LABELS, getBranchMeta, WORK_TYPE_LABELS } from "@/lib/types";
 
 type Props = {
   listings: ListingPublic[];
@@ -21,6 +21,7 @@ export function ListingResults({ listings, emptyMessage }: Props) {
     <ul className="grid gap-3">
       {listings.map((listing) => {
         const meta = getBranchMeta(listing.macro_branch);
+        const isOffro = listing.intent === "offro";
         return (
           <li key={listing.id}>
             <Link
@@ -29,6 +30,15 @@ export function ListingResults({ listings, emptyMessage }: Props) {
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+                  <span
+                    className={`rounded-md px-2 py-0.5 ${
+                      isOffro
+                        ? "bg-[var(--accent-soft)] text-[var(--branch-lavoro)]"
+                        : "bg-[var(--brand-soft)] text-[var(--brand-deep)]"
+                    }`}
+                  >
+                    {INTENT_LABELS[listing.intent]}
+                  </span>
                   <span
                     className="rounded-md px-2 py-0.5 text-white"
                     style={{ backgroundColor: meta.color }}
@@ -45,21 +55,27 @@ export function ListingResults({ listings, emptyMessage }: Props) {
                 <h3 className="mt-2 truncate font-[family-name:var(--font-syne)] text-lg font-semibold tracking-tight">
                   {listing.title}
                 </h3>
-                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--muted)]">
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin className="size-3.5" />
-                    {listing.is_remote
-                      ? "Full remote"
-                      : [listing.location_city, listing.location_zone]
-                          .filter(Boolean)
-                          .join(" · ")}
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {isOffro ? listing.company_or_family_name : null}
+                  {isOffro ? " · " : ""}
+                  <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="size-3.5" />
+                      {listing.is_remote
+                        ? "Full remote"
+                        : [listing.location_city, listing.location_zone]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </span>
+                    <span>{WORK_TYPE_LABELS[listing.work_type]}</span>
+                    {listing.salary_custom && (
+                      <span>{listing.salary_custom}</span>
+                    )}
                   </span>
-                  <span>{WORK_TYPE_LABELS[listing.work_type]}</span>
-                  {listing.salary_custom && <span>{listing.salary_custom}</span>}
                 </p>
               </div>
               <span className="shrink-0 text-sm font-semibold text-[var(--brand)]">
-                Dettagli →
+                {isOffro ? "Contatta →" : "Dettagli →"}
               </span>
             </Link>
           </li>

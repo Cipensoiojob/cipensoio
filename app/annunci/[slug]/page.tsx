@@ -15,6 +15,8 @@ import { getListingBySlug } from "@/lib/listings";
 import type { Listing } from "@/lib/types";
 import {
   BRANCH_ID_TO_SLUG,
+  INTENT_HINTS,
+  INTENT_LABELS,
   getBranchMeta,
   WORK_TYPE_LABELS,
 } from "@/lib/types";
@@ -153,6 +155,15 @@ export default async function AnnuncioPage({ params }: Props) {
           <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
             <article>
               <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+                <span
+                  className={`rounded-md px-2 py-0.5 ${
+                    listing.intent === "offro"
+                      ? "bg-[var(--accent-soft)] text-[var(--branch-lavoro)]"
+                      : "bg-[var(--brand-soft)] text-[var(--brand-deep)]"
+                  }`}
+                >
+                  {INTENT_LABELS[listing.intent]}
+                </span>
                 <Link
                   href={branchHref}
                   className="rounded-md px-2 py-0.5 text-white"
@@ -177,6 +188,8 @@ export default async function AnnuncioPage({ params }: Props) {
 
               <p className="mt-3 text-[var(--muted)]">
                 {listing.company_or_family_name}
+                <span className="mx-2">·</span>
+                {INTENT_HINTS[listing.intent]}
               </p>
 
               <ul className="mt-6 flex flex-wrap gap-3 text-sm">
@@ -225,17 +238,8 @@ export default async function AnnuncioPage({ params }: Props) {
                 phone={listing.contact_phone}
                 whatsapp={listing.contact_whatsapp}
                 title={listing.title}
+                applyUrl={listing.apply_external_url}
               />
-              {listing.apply_external_url && (
-                <a
-                  href={listing.apply_external_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold text-[var(--brand)] hover:bg-white"
-                >
-                  Candidati sul sito esterno
-                </a>
-              )}
             </div>
           </div>
         </div>

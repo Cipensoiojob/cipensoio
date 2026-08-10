@@ -38,7 +38,13 @@ export async function publishListing(
     };
   }
   if (!input.company_or_family_name?.trim()) {
-    return { slug: null, error: "Inserisci il nome famiglia o azienda." };
+    return {
+      slug: null,
+      error:
+        input.intent === "offro"
+          ? "Inserisci il tuo nome."
+          : "Inserisci il nome famiglia o azienda.",
+    };
   }
   if (!input.location_city?.trim()) {
     return { slug: null, error: "Inserisci la città." };

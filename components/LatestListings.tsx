@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, MapPin, Radio } from "lucide-react";
 import type { ListingPublic } from "@/lib/types";
-import { getBranchMeta, WORK_TYPE_LABELS } from "@/lib/types";
+import { INTENT_LABELS, getBranchMeta, WORK_TYPE_LABELS } from "@/lib/types";
 
 type Props = {
   listings: ListingPublic[];
@@ -53,6 +53,19 @@ export function LatestListings({ listings, fromFallback }: Props) {
                         style={{ backgroundColor: meta.color }}
                       >
                         {meta.short}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 ${
+                          listing.intent === "offro"
+                            ? "bg-[var(--accent-soft)] text-[var(--branch-lavoro)]"
+                            : "bg-[var(--brand-soft)] text-[var(--brand-deep)]"
+                        }`}
+                      >
+                        {INTENT_LABELS[listing.intent]}
+                      </span>
+                      <span className="text-[var(--muted)]">
+                        {listing.category.replace(/_/g, " ")} ·{" "}
+                        {listing.location_city}
                       </span>
                       {listing.is_verified && (
                         <span className="inline-flex items-center gap-1 text-[var(--brand)]">

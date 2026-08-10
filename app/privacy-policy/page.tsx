@@ -64,7 +64,12 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Sicurezza e abuso</strong> — prevenzione di spam e contenuti
-          illeciti.
+          illeciti;
+        </li>
+        <li>
+          <strong>Statistiche di utilizzo</strong> — misura aggregata di visite,
+          ricerche e aperture annunci (ID sessione anonimo, senza vendere i dati
+          a terzi) — legittimo interesse a migliorare il servizio (art. 6.1.f).
         </li>
       </ul>
 

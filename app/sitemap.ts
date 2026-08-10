@@ -1,10 +1,19 @@
 import type { MetadataRoute } from "next";
-import { getPublishedListingSlugs } from "@/lib/listings";
-import { BRANCH_SLUGS, SITE_URL } from "@/lib/types";
+import {
+  getCategoryCityPairs,
+  getPublishedListingSlugs,
+} from "@/lib/listings";
+import { mergeSeoHubs, seoHubHref } from "@/lib/seo";
+import { SITE_URL } from "@/lib/types";
+import { VERTICAL_SLUGS } from "@/lib/verticals";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const listings = await getPublishedListingSlugs();
+  const [listings, pairs] = await Promise.all([
+    getPublishedListingSlugs(),
+    getCategoryCityPairs(),
+  ]);
+  const hubs = mergeSeoHubs(pairs);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -14,10 +23,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: `${SITE_URL}/disponibili`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.92,
+    },
+    {
+      url: `${SITE_URL}/cerca`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
       url: `${SITE_URL}/pubblica`,
       lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.8,
+      priority: 0.85,
     },
     {
       url: `${SITE_URL}/chi-siamo`,
@@ -37,13 +58,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
-    ...BRANCH_SLUGS.map((branch) => ({
-      url: `${SITE_URL}/${branch}`,
+    ...VERTICAL_SLUGS.map((slug) => ({
+      url: `${SITE_URL}/${slug}`,
       lastModified: now,
       changeFrequency: "daily" as const,
       priority: 0.9,
     })),
   ];
+
+  const hubRoutes: MetadataRoute.Sitemap = hubs.map((hub) => ({
+    url: `${SITE_URL}${seoHubHref(hub)}`,
+    lastModified: now,
+    changeFrequency: "daily",
+    priority: 0.8,
+  }));
 
   const listingRoutes: MetadataRoute.Sitemap = listings.map((item) => ({
     url: `${SITE_URL}/annunci/${item.slug}`,
@@ -52,5 +80,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...listingRoutes];
+  return [...staticRoutes, ...hubRoutes, ...listingRoutes];
 }

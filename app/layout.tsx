@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -50,13 +51,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="it"
       className={`${dmSans.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans text-foreground">
+        <AnalyticsProvider />
         {children}
       </body>
     </html>

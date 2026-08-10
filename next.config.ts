@@ -5,12 +5,22 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/assistenza",
-        destination: "/persona-assistenza",
+        destination: "/assistenza-care",
         permanent: true,
       },
       {
-        source: "/lavoro",
-        destination: "/lavoro-tradizionale",
+        source: "/persona-assistenza",
+        destination: "/assistenza-care",
+        permanent: true,
+      },
+      {
+        source: "/lavoro-tradizionale",
+        destination: "/lavoro",
+        permanent: true,
+      },
+      {
+        source: "/pet-home",
+        destination: "/pet-sitter",
         permanent: true,
       },
       {

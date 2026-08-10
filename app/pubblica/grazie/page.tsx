@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ShareButtons } from "@/components/ShareButtons";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -21,10 +22,16 @@ export default function PubblicaGraziePage() {
             Grazie — annuncio ricevuto
           </h1>
           <p className="mt-3 text-[var(--muted)]">
-            Il tuo annuncio è in stato <strong>pending</strong>. Dopo
-            l&apos;approvazione del team diventerà pubblico su home, macro-rami
-            e sitemap SEO.
+            Di solito lo revisioniamo entro <strong>24 ore</strong>. Quando è
+            approvato compare su home, macro-rami, pagine città e sitemap SEO.
           </p>
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            Nel frattempo: condividilo con chi potrebbe rispondere.
+          </p>
+          <ShareButtons
+            title="Sto pubblicando un annuncio su CiPensoIo — portale gratis per assistenza, pet e lavoro vicino a casa"
+            url="https://cipensoio.it/pubblica"
+          />
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/"

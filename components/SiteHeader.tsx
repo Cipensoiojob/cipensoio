@@ -13,36 +13,57 @@ export function SiteHeader() {
           CiPensoIo
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm text-[var(--muted)] md:flex">
+        <nav className="hidden items-center gap-4 text-sm text-[var(--muted)] lg:flex xl:gap-5">
           <Link
-            href="/persona-assistenza"
+            href="/assistenza-care"
             className="transition-colors hover:text-[var(--brand)]"
           >
-            Assistenza
-          </Link>
-          <Link href="/pet-home" className="transition-colors hover:text-[var(--brand)]">
-            Pet & Casa
+            Care
           </Link>
           <Link
-            href="/lavoro-tradizionale"
+            href="/babysitter"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
+            Babysitter
+          </Link>
+          <Link
+            href="/pet-sitter"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
+            Pet
+          </Link>
+          <Link
+            href="/professionisti"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
+            Professionisti
+          </Link>
+          <Link
+            href="/lavoro"
             className="transition-colors hover:text-[var(--brand)]"
           >
             Lavoro
+          </Link>
+          <Link
+            href="/disponibili"
+            className="transition-colors hover:text-[var(--brand)]"
+          >
+            Disponibili
           </Link>
         </nav>
 
         <div className="flex items-center gap-2">
           <Link
-            href="/pubblica"
+            href="/pubblica?intento=offro"
             className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-deep)]"
           >
             <Plus className="size-4" aria-hidden />
-            <span className="hidden sm:inline">Pubblica / Registrati</span>
+            <span className="hidden sm:inline">Metti in vetrina</span>
             <span className="sm:hidden">Pubblica</span>
           </Link>
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--foreground)] md:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--foreground)] lg:hidden"
             aria-label="Apri menu"
           >
             <Menu className="size-5" />

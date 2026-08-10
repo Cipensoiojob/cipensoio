@@ -33,9 +33,11 @@ export default function CookiePolicyPage() {
           (localStorage) senza profilazione pubblicitaria.
         </li>
         <li>
-          <strong>Analitici</strong> — in fase di lancio possiamo introdurre
-          strumenti di misura aggregata del traffico; in tal caso aggiorneremo
-          questa pagina e, se richiesto, chiederemo consenso.
+          <strong>Analitici first-party</strong> — misuriamo in modo aggregato
+          visite di pagina, ricerche e aperture annunci (ID sessione anonimo in{" "}
+          <em>localStorage</em>, senza profilazione pubblicitaria né vendita
+          dati). I dati sono visibili solo nell&apos;area admin. Puoi cancellare
+          i dati locali dal browser.
         </li>
       </ul>
 

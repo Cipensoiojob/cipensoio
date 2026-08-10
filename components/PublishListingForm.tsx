@@ -11,28 +11,54 @@ import {
   UserRound,
 } from "lucide-react";
 import { publishListing } from "@/app/pubblica/actions";
-import type { MacroBranch, WorkType } from "@/lib/types";
+import type { ListingIntent, WorkType } from "@/lib/types";
+import { WORK_TYPE_LABELS, WORK_TYPES } from "@/lib/types";
 import {
-  MACRO_BRANCHES,
-  WORK_TYPE_LABELS,
-  WORK_TYPES,
-  getBranchMeta,
-} from "@/lib/types";
+  VERTICALS,
+  formatVerticalCategoryLabel,
+  getVertical,
+  type VerticalSlug,
+} from "@/lib/verticals";
 
-type Role = "famiglia" | "lavoratore";
+const STEPS = ["Categoria", "Annuncio", "Contatti"] as const;
 
-const STEPS = ["Chi sei", "Annuncio", "Contatti"] as const;
+type Props = {
+  initialVertical?: VerticalSlug;
+  initialCategory?: string;
+  initialCity?: string;
+  initialIntent?: ListingIntent;
+};
 
-export function PublishListingForm() {
+export function PublishListingForm({
+  initialVertical,
+  initialCategory,
+  initialCity,
+  initialIntent,
+}: Props) {
   const router = useRouter();
+  const startVertical =
+    (initialVertical && getVertical(initialVertical)?.slug) ||
+    "assistenza-care";
+  const startMeta = getVertical(startVertical)!;
+  const normalizedCategory = initialCategory?.replace(/-/g, "_").trim();
+  const startCategory =
+    normalizedCategory && startMeta.categories.includes(normalizedCategory)
+      ? normalizedCategory
+      : startMeta.categories[0];
+  const startIntent: ListingIntent =
+    initialIntent === "offro" || initialIntent === "cerco"
+      ? initialIntent
+      : "cerco";
+
   const [step, setStep] = useState(0);
-  const [role, setRole] = useState<Role>("famiglia");
-  const [branch, setBranch] = useState<MacroBranch>("persona_assistenza");
-  const [category, setCategory] = useState("badante");
+  const [intent, setIntent] = useState<ListingIntent>(startIntent);
+  const [verticalSlug, setVerticalSlug] =
+    useState<VerticalSlug>(startVertical);
+  const [category, setCategory] = useState(startCategory);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [company, setCompany] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(initialCity ?? "");
   const [zone, setZone] = useState("");
   const [isRemote, setIsRemote] = useState(false);
   const [workType, setWorkType] = useState<WorkType>("ad_ore");
@@ -42,8 +68,8 @@ export function PublishListingForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const meta = getBranchMeta(branch);
-  const categories = useMemo(() => meta.categories, [meta]);
+  const vertical = getVertical(verticalSlug)!;
+  const categories = useMemo(() => [...vertical.categories], [vertical]);
 
   function goNext() {
     setError(null);
@@ -66,9 +92,9 @@ export function PublishListingForm() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  function onBranchChange(id: MacroBranch) {
-    setBranch(id);
-    const next = getBranchMeta(id);
+  function onVerticalChange(slug: VerticalSlug) {
+    setVerticalSlug(slug);
+    const next = getVertical(slug)!;
     setCategory(next.categories[0]);
   }
 
@@ -83,7 +109,7 @@ export function PublishListingForm() {
 
     startTransition(async () => {
       const result = await publishListing({
-        macro_branch: branch,
+        macro_branch: vertical.macroBranch,
         category,
         title,
         description,
@@ -95,6 +121,7 @@ export function PublishListingForm() {
         salary_custom: salary || null,
         contact_phone: phone,
         contact_whatsapp: whatsapp || null,
+        intent,
       });
 
       if (result.error || !result.slug) {
@@ -137,96 +164,117 @@ export function PublishListingForm() {
       {step === 0 && (
         <fieldset className="animate-rise space-y-6">
           <legend className="font-[family-name:var(--font-syne)] text-xl font-semibold tracking-tight">
-            Chi pubblica?
+            Categoria e Offro / Cerco
           </legend>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setRole("famiglia")}
-              className={`rounded-2xl border p-4 text-left transition-colors ${
-                role === "famiglia"
-                  ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                  : "border-[var(--line)] bg-white"
-              }`}
-            >
-              <Home className="size-5 text-[var(--brand)]" />
-              <p className="mt-2 font-semibold">Famiglia / Azienda</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Cerco una persona o un profilo da assumere.
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("lavoratore")}
-              className={`rounded-2xl border p-4 text-left transition-colors ${
-                role === "lavoratore"
-                  ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                  : "border-[var(--line)] bg-white"
-              }`}
-            >
-              <UserRound className="size-5 text-[var(--brand)]" />
-              <p className="mt-2 font-semibold">Lavoratore</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Offro i miei servizi o cerco un nuovo ruolo.
-              </p>
-            </button>
-          </div>
-
           <div>
-            <p className="mb-2 text-sm font-medium">Macro-ramo</p>
+            <p className="mb-2 text-sm font-medium">1. Settore</p>
             <div className="grid gap-2">
-              {MACRO_BRANCHES.map((b) => (
+              {VERTICALS.map((v) => (
                 <button
-                  key={b.id}
+                  key={v.slug}
                   type="button"
-                  onClick={() => onBranchChange(b.id)}
+                  onClick={() => onVerticalChange(v.slug)}
                   className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
-                    branch === b.id
+                    verticalSlug === v.slug
                       ? "border-transparent text-white"
                       : "border-[var(--line)] bg-white"
                   }`}
                   style={
-                    branch === b.id
-                      ? { backgroundColor: b.color }
+                    verticalSlug === v.slug
+                      ? { backgroundColor: v.color }
                       : undefined
                   }
                 >
-                  <span className="font-semibold">{b.label}</span>
+                  <span className="font-semibold">{v.label}</span>
                   <span
                     className={`mt-0.5 block text-xs ${
-                      branch === b.id ? "text-white/85" : "text-[var(--muted)]"
+                      verticalSlug === v.slug
+                        ? "text-white/85"
+                        : "text-[var(--muted)]"
                     }`}
                   >
-                    {b.description}
+                    {v.description}
                   </span>
                 </button>
               ))}
             </div>
           </div>
+
+          <div>
+            <p className="mb-2 text-sm font-medium">2. Offro o Cerco?</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setIntent("offro")}
+                className={`rounded-2xl border p-4 text-left transition-colors ${
+                  intent === "offro"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                    : "border-[var(--line)] bg-white"
+                }`}
+              >
+                <UserRound className="size-5 text-[var(--brand)]" />
+                <p className="mt-2 font-semibold">Offro lavoro</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {vertical.offroHint}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIntent("cerco")}
+                className={`rounded-2xl border p-4 text-left transition-colors ${
+                  intent === "cerco"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                    : "border-[var(--line)] bg-white"
+                }`}
+              >
+                <Home className="size-5 text-[var(--brand)]" />
+                <p className="mt-2 font-semibold">Cerco lavoro</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {vertical.cercoHint}
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {categories.length > 1 ? (
+            <div>
+              <p className="mb-2 text-sm font-medium">3. Ruolo preciso</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategory(c)}
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold ${
+                      category === c
+                        ? "bg-[var(--brand)] text-white"
+                        : "border border-[var(--line)] bg-white"
+                    }`}
+                  >
+                    {formatVerticalCategoryLabel(vertical, c)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </fieldset>
       )}
 
       {step === 1 && (
         <fieldset className="animate-rise space-y-4">
           <legend className="font-[family-name:var(--font-syne)] text-xl font-semibold tracking-tight">
-            Dettagli annuncio
+            Dettagli{" "}
+            {intent === "offro" ? "(Offro lavoro)" : "(Cerco lavoro)"}
           </legend>
 
-          <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Categoria</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c.replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="rounded-xl bg-[var(--brand-soft)] px-3 py-2 text-sm text-[var(--brand-deep)]">
+            {vertical.label}
+            {categories.length > 1
+              ? ` · ${formatVerticalCategoryLabel(vertical, category)}`
+              : ""}{" "}
+            · {intent === "offro" ? "Offro lavoro" : "Cerco lavoro"}
+          </p>
 
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">Titolo</span>
@@ -235,9 +283,9 @@ export function PublishListingForm() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={
-                role === "famiglia"
-                  ? "Es. Badante convivente a Milano"
-                  : "Es. Dog sitter disponibile zona Navigli"
+                intent === "cerco"
+                  ? `Es. Cerco ${formatVerticalCategoryLabel(vertical, category).toLowerCase()} a Milano`
+                  : `Es. ${formatVerticalCategoryLabel(vertical, category)} disponibile a Milano`
               }
               className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
             />
@@ -257,7 +305,7 @@ export function PublishListingForm() {
 
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">
-              {role === "famiglia" ? "Nome famiglia / azienda" : "Il tuo nome"}
+              {intent === "cerco" ? "Nome famiglia / azienda" : "Il tuo nome"}
             </span>
             <input
               required
@@ -329,34 +377,45 @@ export function PublishListingForm() {
       {step === 2 && (
         <fieldset className="animate-rise space-y-4">
           <legend className="font-[family-name:var(--font-syne)] text-xl font-semibold tracking-tight">
-            Contatti
+            Telefono e WhatsApp
           </legend>
           <p className="text-sm text-[var(--muted)]">
-            Visibili solo dopo un click sulla scheda annuncio.
+            I numeri restano nascosti fino al click. WhatsApp è spesso il modo
+            più semplice.
           </p>
 
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Telefono</span>
+            <span className="mb-1.5 block font-medium">Telefono (obbligatorio)</span>
             <input
               required
               type="tel"
+              inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+39…"
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
+              placeholder="Es. 340 1234567"
+              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--brand)]"
             />
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">WhatsApp (opz.)</span>
+            <span className="mb-1.5 block font-medium">
+              WhatsApp (consigliato)
+            </span>
             <input
               type="tel"
+              inputMode="tel"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="Se diverso dal telefono"
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
+              placeholder="Stesso numero o un altro cellulare"
+              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--brand)]"
             />
           </label>
+
+          <p className="text-xs leading-relaxed text-[var(--muted)]">
+            Nota: il lavoro domestico in Italia va dichiarato (es. CCNL).
+            CiPensoIo serve a farvi incontrare; non sostituisce obblighi fiscali
+            o previdenziali.
+          </p>
         </fieldset>
       )}
 
@@ -401,7 +460,7 @@ export function PublishListingForm() {
             {pending && (
               <LoaderCircle className="size-4 animate-spin" aria-hidden />
             )}
-            Pubblica annuncio
+            {intent === "offro" ? "Metti in vetrina" : "Pubblica annuncio"}
           </button>
         )}
       </div>

@@ -1,11 +1,12 @@
 # CiPensoIo — robots.txt per crawler (Google, Bing, ecc.)
 User-agent: *
 Allow: /
+Allow: /cerca
+Allow: /pubblica
 Disallow: /admin/
 Disallow: /admin/moderazione
 Disallow: /pubblica/grazie
 
-# Google
 User-agent: Googlebot
 Allow: /
 Disallow: /admin/
