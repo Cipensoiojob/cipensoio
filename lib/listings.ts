@@ -1,8 +1,14 @@
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabaseClient";
+import {
+  getSupabaseAdminClient,
+  getSupabaseClient,
+  isSupabaseAdminConfigured,
+  isSupabaseConfigured,
+} from "@/lib/supabaseClient";
 import { buildListingSlug } from "@/lib/slug";
 import type {
   Listing,
   ListingPublic,
+  ListingStatus,
   MacroBranch,
   WorkType,
 } from "@/lib/types";
@@ -29,6 +35,7 @@ const FALLBACK_LISTINGS: Listing[] = [
     apply_external_url: null,
     is_featured: true,
     is_verified: true,
+    status: "published",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000001",
     contact_whatsapp: "+393400000001",
@@ -50,6 +57,7 @@ const FALLBACK_LISTINGS: Listing[] = [
     apply_external_url: null,
     is_featured: false,
     is_verified: true,
+    status: "published",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000002",
     contact_whatsapp: null,
@@ -71,6 +79,7 @@ const FALLBACK_LISTINGS: Listing[] = [
     apply_external_url: null,
     is_featured: true,
     is_verified: false,
+    status: "published",
     created_at: new Date().toISOString(),
     contact_phone: "+390200000003",
     contact_whatsapp: null,
@@ -92,7 +101,7 @@ export type ListingFilters = {
 };
 
 function filterFallback(filters: ListingFilters): ListingPublic[] {
-  let rows = [...FALLBACK_LISTINGS];
+  let rows = FALLBACK_LISTINGS.filter((r) => r.status === "published");
 
   if (filters.branch) {
     rows = rows.filter((r) => r.macro_branch === filters.branch);
@@ -131,6 +140,7 @@ export async function getLatestListings(
   return getListings({ limit });
 }
 
+/** Solo annunci published (vista listings_public). */
 export async function getListings(
   filters: ListingFilters = {},
 ): Promise<{ listings: ListingPublic[]; fromFallback: boolean }> {
@@ -187,13 +197,17 @@ export async function getListings(
   }
 }
 
+/** Dettaglio pubblico: solo published. */
 export async function getListingBySlug(
   slug: string,
 ): Promise<{ listing: Listing | null; fromFallback: boolean }> {
   if (!slug) return { listing: null, fromFallback: false };
 
   if (!isSupabaseConfigured()) {
-    const fallback = FALLBACK_LISTINGS.find((l) => l.slug === slug) ?? null;
+    const fallback =
+      FALLBACK_LISTINGS.find(
+        (l) => l.slug === slug && l.status === "published",
+      ) ?? null;
     return { listing: fallback, fromFallback: true };
   }
 
@@ -203,22 +217,63 @@ export async function getListingBySlug(
       .from("listings")
       .select(FULL_LISTING_COLUMNS)
       .eq("slug", slug)
+      .eq("status", "published")
       .maybeSingle();
 
     if (error) {
-      const fallback = FALLBACK_LISTINGS.find((l) => l.slug === slug) ?? null;
+      const fallback =
+        FALLBACK_LISTINGS.find(
+          (l) => l.slug === slug && l.status === "published",
+        ) ?? null;
       return { listing: fallback, fromFallback: Boolean(fallback) };
     }
 
     if (!data) {
-      const fallback = FALLBACK_LISTINGS.find((l) => l.slug === slug) ?? null;
+      const fallback =
+        FALLBACK_LISTINGS.find(
+          (l) => l.slug === slug && l.status === "published",
+        ) ?? null;
       return { listing: fallback, fromFallback: Boolean(fallback) };
     }
 
     return { listing: data as Listing, fromFallback: false };
   } catch {
-    const fallback = FALLBACK_LISTINGS.find((l) => l.slug === slug) ?? null;
+    const fallback =
+      FALLBACK_LISTINGS.find(
+        (l) => l.slug === slug && l.status === "published",
+      ) ?? null;
     return { listing: fallback, fromFallback: Boolean(fallback) };
+  }
+}
+
+/** Slug + date per sitemap (solo published). */
+export async function getPublishedListingSlugs(): Promise<
+  { slug: string; created_at: string }[]
+> {
+  if (!isSupabaseConfigured()) {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+      (l) => ({ slug: l.slug, created_at: l.created_at }),
+    );
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("listings_public")
+      .select("slug, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error || !data?.length) {
+      return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+        (l) => ({ slug: l.slug, created_at: l.created_at }),
+      );
+    }
+
+    return data as { slug: string; created_at: string }[];
+  } catch {
+    return FALLBACK_LISTINGS.filter((l) => l.status === "published").map(
+      (l) => ({ slug: l.slug, created_at: l.created_at }),
+    );
   }
 }
 
@@ -252,6 +307,18 @@ async function ensureUniqueSlug(
       attempt === 0
         ? base
         : buildListingSlug(title, city, String(attempt + 1).padStart(3, "0"));
+
+    // Check via admin if available (pending rows are hidden by RLS SELECT)
+    if (isSupabaseAdminConfigured()) {
+      const admin = getSupabaseAdminClient();
+      const { data } = await admin
+        .from("listings")
+        .select("id")
+        .eq("slug", candidate)
+        .maybeSingle();
+      if (!data) return candidate;
+      continue;
+    }
 
     const { data } = await supabase
       .from("listings")
@@ -301,22 +368,85 @@ export async function createListing(
       apply_external_url: null,
       is_featured: false,
       is_verified: false,
+      status: "pending" as const,
     };
 
-    const { data, error } = await supabase
-      .from("listings")
-      .insert(row)
-      .select(FULL_LISTING_COLUMNS)
-      .single();
+    // RLS: SELECT solo published → non usare .select() dopo insert
+    const { error } = await supabase.from("listings").insert(row);
 
     if (error) {
       return { listing: null, error: error.message };
     }
 
-    return { listing: data as Listing, error: null };
+    const listing: Listing = {
+      id: "pending",
+      ...row,
+      created_at: new Date().toISOString(),
+    };
+
+    return { listing, error: null };
   } catch (err) {
     return {
       listing: null,
+      error: err instanceof Error ? err.message : "Errore imprevisto",
+    };
+  }
+}
+
+/** Moderazione: lista per status (richiede service role). */
+export async function getListingsForModeration(
+  status: ListingStatus = "pending",
+): Promise<{ listings: Listing[]; error: string | null }> {
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      listings: [],
+      error:
+        "Configura SUPABASE_SERVICE_ROLE_KEY in .env.local per la moderazione.",
+    };
+  }
+
+  try {
+    const admin = getSupabaseAdminClient();
+    const { data, error } = await admin
+      .from("listings")
+      .select(FULL_LISTING_COLUMNS)
+      .eq("status", status)
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (error) return { listings: [], error: error.message };
+    return { listings: (data ?? []) as Listing[], error: null };
+  } catch (err) {
+    return {
+      listings: [],
+      error: err instanceof Error ? err.message : "Errore imprevisto",
+    };
+  }
+}
+
+export async function updateListingStatus(
+  id: string,
+  status: Extract<ListingStatus, "published" | "rejected">,
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      error: "SUPABASE_SERVICE_ROLE_KEY mancante.",
+    };
+  }
+
+  try {
+    const admin = getSupabaseAdminClient();
+    const { error } = await admin
+      .from("listings")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, error: null };
+  } catch (err) {
+    return {
+      ok: false,
       error: err instanceof Error ? err.message : "Errore imprevisto",
     };
   }

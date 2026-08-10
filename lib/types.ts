@@ -10,6 +10,8 @@ export type WorkType =
   | "ad_ore"
   | "turni";
 
+export type ListingStatus = "pending" | "published" | "rejected";
+
 /** Campi pubblici (senza contatti protetti). */
 export type ListingPublic = {
   id: string;
@@ -27,10 +29,11 @@ export type ListingPublic = {
   apply_external_url: string | null;
   is_featured: boolean;
   is_verified: boolean;
+  status: ListingStatus;
   created_at: string;
 };
 
-/** Annuncio completo incluso contatti (dettaglio / pubblicazione). */
+/** Annuncio completo incluso contatti (dettaglio / pubblicazione / admin). */
 export type Listing = ListingPublic & {
   contact_phone: string;
   contact_whatsapp: string | null;
@@ -114,8 +117,16 @@ export const WORK_TYPE_LABELS: Record<WorkType, string> = {
 
 export const WORK_TYPES = Object.keys(WORK_TYPE_LABELS) as WorkType[];
 
+export const STATUS_LABELS: Record<ListingStatus, string> = {
+  pending: "In attesa",
+  published: "Pubblicato",
+  rejected: "Rifiutato",
+};
+
+export const SITE_URL = "https://cipensoio.it";
+
 export const PUBLIC_LISTING_COLUMNS =
-  "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at" as const;
+  "id, macro_branch, category, title, slug, description, company_or_family_name, location_city, location_zone, is_remote, work_type, salary_custom, apply_external_url, is_featured, is_verified, created_at, status" as const;
 
 export const FULL_LISTING_COLUMNS =
   `${PUBLIC_LISTING_COLUMNS}, contact_phone, contact_whatsapp` as const;

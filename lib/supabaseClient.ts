@@ -1,7 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+function normalizeSupabaseUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  // Accetta anche URL incollati con /rest/v1/
+  return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+}
+
+const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(
@@ -12,7 +19,16 @@ export function isSupabaseConfigured(): boolean {
   );
 }
 
+export function isSupabaseAdminConfigured(): boolean {
+  return Boolean(
+    isSupabaseConfigured() &&
+      supabaseServiceRoleKey &&
+      !supabaseServiceRoleKey.includes("YOUR_SERVICE_ROLE"),
+  );
+}
+
 let client: SupabaseClient | null = null;
+let adminClient: SupabaseClient | null = null;
 
 /**
  * Browser / shared Supabase client (anon key).
@@ -35,6 +51,28 @@ export function getSupabaseClient(): SupabaseClient {
   }
 
   return client;
+}
+
+/**
+ * Client service-role solo server (bypassa RLS) — moderazione FASE 3.
+ */
+export function getSupabaseAdminClient(): SupabaseClient {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY for admin operations in .env.local",
+    );
+  }
+
+  if (!adminClient) {
+    adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  }
+
+  return adminClient;
 }
 
 /** Alias comodo per import legacy / componenti client. */

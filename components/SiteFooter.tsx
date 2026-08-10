@@ -51,17 +51,17 @@ export function SiteFooter() {
           </p>
           <ul className="mt-3 space-y-2 text-sm text-white/85">
             <li>
-              <Link href="/privacy" className="hover:text-white">
+              <Link href="/chi-siamo" className="hover:text-white">
+                Chi siamo
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacy-policy" className="hover:text-white">
                 Privacy Policy
               </Link>
             </li>
             <li>
-              <Link href="/termini" className="hover:text-white">
-                Termini di servizio
-              </Link>
-            </li>
-            <li>
-              <Link href="/cookie" className="hover:text-white">
+              <Link href="/cookie-policy" className="hover:text-white">
                 Cookie Policy
               </Link>
             </li>

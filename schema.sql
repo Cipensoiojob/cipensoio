@@ -26,6 +26,17 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
+-- FASE 3: moderazione annunci
+DO $$ BEGIN
+  CREATE TYPE public.listing_status AS ENUM (
+    'pending',
+    'published',
+    'rejected'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 -- Tabella principale annunci
 CREATE TABLE IF NOT EXISTS public.listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,6 +56,7 @@ CREATE TABLE IF NOT EXISTS public.listings (
   apply_external_url TEXT,
   is_featured BOOLEAN NOT NULL DEFAULT false,
   is_verified BOOLEAN NOT NULL DEFAULT false,
+  status public.listing_status NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT listings_slug_unique UNIQUE (slug),
@@ -52,6 +64,22 @@ CREATE TABLE IF NOT EXISTS public.listings (
   CONSTRAINT listings_title_nonempty CHECK (char_length(trim(title)) > 0),
   CONSTRAINT listings_slug_seo CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
 );
+
+-- Migrazione FASE 3 su DB già esistenti
+ALTER TABLE public.listings
+  ADD COLUMN IF NOT EXISTS status public.listing_status NOT NULL DEFAULT 'pending';
+
+-- Seed / annunci storici: marcali pubblicati se ancora al default senza revisione esplicito
+-- (esegui una sola volta in produzione dopo il primo deploy FASE 3, poi commenta)
+UPDATE public.listings
+SET status = 'published'
+WHERE status = 'pending'
+  AND created_at < now() - interval '1 second'
+  AND slug IN (
+    'badante-h24-convivente-segrate-001',
+    'dogsitter-passeggiate-milano-002',
+    'ai-engineer-full-remote-003'
+  );
 
 -- Indici per ricerca, SEO programmatica e feed homepage
 CREATE INDEX IF NOT EXISTS listings_macro_branch_idx
@@ -73,8 +101,13 @@ CREATE INDEX IF NOT EXISTS listings_featured_idx
 CREATE INDEX IF NOT EXISTS listings_city_branch_idx
   ON public.listings (location_city, macro_branch, created_at DESC);
 
--- Vista pubblica senza contatti protetti (per listing cards / SEO)
-CREATE OR REPLACE VIEW public.listings_public
+CREATE INDEX IF NOT EXISTS listings_status_idx
+  ON public.listings (status, created_at DESC);
+
+-- Vista pubblica: SOLO published, senza contatti
+-- DROP necessario: CREATE OR REPLACE non può inserire/riordinare colonne (errore 42P16)
+DROP VIEW IF EXISTS public.listings_public;
+CREATE VIEW public.listings_public
 WITH (security_invoker = true)
 AS
 SELECT
@@ -93,36 +126,35 @@ SELECT
   apply_external_url,
   is_featured,
   is_verified,
-  created_at
-FROM public.listings;
+  created_at,
+  status
+FROM public.listings
+WHERE status = 'published';
 
 COMMENT ON VIEW public.listings_public IS
-  'Annunci pubblici senza contact_phone / contact_whatsapp. Usare per homepage, SERP e JSON-LD.';
+  'Annunci pubblicati senza contact_phone / contact_whatsapp. Usare per homepage, SERP e sitemap.';
 
 -- Row Level Security
 ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 
--- Lettura pubblica dei campi non sensibili tramite policy selettiva:
--- anon/authenticated possono SELECT ma i contatti vanno esposti solo via RPC autenticata
--- o lato server con service role. Per semplicità Phase 1: SELECT aperto sulla tabella
--- (proteggi i contatti in produzione usando listings_public + RPC unlock_contact).
-
+-- Lettura pubblica: solo annunci approvati
 DROP POLICY IF EXISTS "listings_public_read" ON public.listings;
 CREATE POLICY "listings_public_read"
   ON public.listings
   FOR SELECT
   TO anon, authenticated
-  USING (true);
+  USING (status = 'published');
 
--- FASE 2: insert aperto ad anon per form /pubblica (hardening auth in FASE 3)
+-- Insert pubblici sempre in pending (non si può forzare published da anon)
 DROP POLICY IF EXISTS "listings_auth_insert" ON public.listings;
 DROP POLICY IF EXISTS "listings_public_insert" ON public.listings;
 CREATE POLICY "listings_public_insert"
   ON public.listings
   FOR INSERT
   TO anon, authenticated
-  WITH CHECK (true);
+  WITH CHECK (status = 'pending');
 
+-- Update solo autenticati (moderazione usa service role lato server)
 DROP POLICY IF EXISTS "listings_auth_update" ON public.listings;
 CREATE POLICY "listings_auth_update"
   ON public.listings
@@ -131,17 +163,16 @@ CREATE POLICY "listings_auth_update"
   USING (true)
   WITH CHECK (true);
 
--- Grant sulla vista pubblica e insert FASE 2
 GRANT SELECT ON public.listings_public TO anon, authenticated;
 GRANT SELECT, INSERT ON public.listings TO anon, authenticated;
 GRANT UPDATE ON public.listings TO authenticated;
 
--- Seed demo (opzionale — commenta in produzione)
+-- Seed demo (pubblicati)
 INSERT INTO public.listings (
   macro_branch, category, title, slug, description,
   company_or_family_name, location_city, location_zone,
   is_remote, work_type, salary_custom, contact_phone, contact_whatsapp,
-  is_featured, is_verified
+  is_featured, is_verified, status
 ) VALUES
 (
   'persona_assistenza',
@@ -158,7 +189,8 @@ INSERT INTO public.listings (
   '+390200000001',
   '+393400000001',
   true,
-  true
+  true,
+  'published'
 ),
 (
   'pet_home',
@@ -175,7 +207,8 @@ INSERT INTO public.listings (
   '+390200000002',
   NULL,
   false,
-  true
+  true,
+  'published'
 ),
 (
   'lavoro_tradizionale',
@@ -192,6 +225,7 @@ INSERT INTO public.listings (
   '+390200000003',
   NULL,
   true,
-  false
+  false,
+  'published'
 )
 ON CONFLICT (slug) DO NOTHING;

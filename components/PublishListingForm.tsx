@@ -102,7 +102,7 @@ export function PublishListingForm() {
         return;
       }
 
-      router.push(`/annunci/${result.slug}?pubblicato=1`);
+      router.push("/pubblica/grazie");
     });
   }
 

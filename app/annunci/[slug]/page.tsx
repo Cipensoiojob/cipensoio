@@ -21,7 +21,6 @@ import {
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 function buildJobPosting(listing: Listing) {
@@ -116,16 +115,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function AnnuncioPage({ params, searchParams }: Props) {
+export default async function AnnuncioPage({ params }: Props) {
   const { slug } = await params;
-  const query = await searchParams;
   const { listing, fromFallback } = await getListingBySlug(slug);
 
   if (!listing) notFound();
 
   const meta = getBranchMeta(listing.macro_branch);
   const branchHref = `/${BRANCH_ID_TO_SLUG[listing.macro_branch]}`;
-  const justPublished = query.pubblicato === "1";
   const jsonLd = buildJobPosting(listing);
 
   return (
@@ -137,16 +134,6 @@ export default async function AnnuncioPage({ params, searchParams }: Props) {
       <SiteHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-          {justPublished && (
-            <p
-              role="status"
-              className="mb-6 rounded-xl border border-[var(--brand)]/25 bg-[var(--brand-soft)] px-4 py-3 text-sm text-[var(--brand-deep)]"
-            >
-              Annuncio pubblicato. Ecco la scheda pubblica con i dati
-              strutturati SEO.
-            </p>
-          )}
-
           <nav className="text-sm text-[var(--muted)]" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-[var(--brand)]">
               Home
