@@ -7,12 +7,28 @@ import { mergeSeoHubs, seoHubHref } from "@/lib/seo";
 import { SITE_URL } from "@/lib/types";
 import { VERTICAL_SLUGS } from "@/lib/verticals";
 
+/** Cache 1h: Google riceve risposta veloce anche se Supabase è lento. */
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [listings, pairs] = await Promise.all([
-    getPublishedListingSlugs(),
-    getCategoryCityPairs(),
-  ]);
+
+  let listings: { slug: string; created_at: string }[] = [];
+  let pairs: { category: string; city: string }[] = [];
+
+  try {
+    const result = await Promise.race([
+      Promise.all([getPublishedListingSlugs(), getCategoryCityPairs()]),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("sitemap-timeout")), 8000),
+      ),
+    ]);
+    listings = result[0];
+    pairs = result[1];
+  } catch {
+    // Sitemap statica comunque valida se il DB non risponde in tempo.
+  }
+
   const hubs = mergeSeoHubs(pairs);
 
   const staticRoutes: MetadataRoute.Sitemap = [
