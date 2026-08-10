@@ -8,7 +8,7 @@
  */
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
-import { scrapeEuresItaly } from "./euresScraper";
+import { scrapeEuresDailyByCategory, scrapeEuresItaly } from "./euresScraper";
 import { getItalianCatalogRaw } from "./italianCatalog";
 import {
   mapSourceCategoryToBranch,
@@ -137,12 +137,24 @@ export async function scrapeSampleSource(options?: {
   html?: string;
   source?: ScrapeSource;
   maxListings?: number;
+  /** ≥1 annuncio per ogni categoria prodotto (EURES). */
+  daily?: boolean;
+  perCategory?: number;
 }): Promise<ScrapedListing[]> {
   const source: ScrapeSource =
     options?.source ??
     (options?.url ? "url" : options?.html ? "html" : "eures");
 
-  if (source === "eures") {
+  if (options?.daily || source === "eures") {
+    if (options?.daily) {
+      console.log(
+        "  fonte: EURES Italia — quota giornaliera (≥1 per categoria)",
+      );
+      const report = await scrapeEuresDailyByCategory({
+        perCategory: options.perCategory ?? 1,
+      });
+      return report.listings;
+    }
     console.log("  fonte: EURES Italia (annunci reali)");
     return scrapeEuresItaly({ maxListings: options?.maxListings ?? 48 });
   }

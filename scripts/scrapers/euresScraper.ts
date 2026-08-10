@@ -11,6 +11,7 @@ import {
   type ScrapedListing,
   type ScrapedRawItem,
 } from "./utils";
+import type { MacroBranch } from "../../lib/types";
 
 const EURES_SEARCH =
   "https://europa.eu/eures/api/jv-searchengine/public/jv-search/search";
@@ -19,7 +20,8 @@ const EURES_DETAIL =
 const EURES_PUBLIC =
   "https://europa.eu/eures/portal/jv-se/jv_details_show";
 
-const USER_AGENT = "CiPensoIoBot/0.1 (+https://cipensoio.it; eures-import)";
+const USER_AGENT =
+  "CiPensoIoBot/0.1 (+https://cipensoio.vercel.app; eures-import)";
 
 /** Query mirate ai 3 macro-rami (IT). */
 export const EURES_QUERIES = [
@@ -37,10 +39,125 @@ export const EURES_QUERIES = [
   { keyword: "babysitter", category: "babysitter" },
   { keyword: "idraulico", category: "idraulico" },
   { keyword: "lavapiatti", category: "cameriere" },
+  { keyword: "dog sitter", category: "dogsitter" },
+  { keyword: "pet sitter", category: "dogsitter" },
+  { keyword: "cat sitter", category: "catsitter" },
+  { keyword: "stiratrice", category: "stiro" },
+  { keyword: "manutentore", category: "manutentore" },
+  { keyword: "commesso", category: "commerciale" },
+  { keyword: "sviluppatore software", category: "sviluppatore" },
+  { keyword: "intelligenza artificiale", category: "ai_engineer" },
+  { keyword: "cuoco", category: "ristorazione" },
+] as const;
+
+/**
+ * Una riga per categoria prodotto: ogni giorno cerchiamo ≥1 annuncio per ciascuna.
+ * Ordine = priorità UX (Care → Babysitter → Pet → Pro → Lavoro).
+ */
+export const DAILY_CATEGORY_TARGETS: readonly {
+  category: string;
+  macro_branch: MacroBranch;
+  keywords: readonly string[];
+}[] = [
+  {
+    category: "badante",
+    macro_branch: "persona_assistenza",
+    keywords: ["badante", "assistenza anziani", "caregiver"],
+  },
+  {
+    category: "colf",
+    macro_branch: "persona_assistenza",
+    keywords: ["colf", "lavoro domestico", "domestica"],
+  },
+  {
+    category: "oss",
+    macro_branch: "persona_assistenza",
+    keywords: ["operatore socio-sanitario", "OSS", "assistente infermiere"],
+  },
+  {
+    category: "babysitter",
+    macro_branch: "persona_assistenza",
+    keywords: ["babysitter", "baby sitter", "tata"],
+  },
+  {
+    category: "dogsitter",
+    macro_branch: "pet_home",
+    keywords: ["dog sitter", "pet sitter", "dogsitter"],
+  },
+  {
+    category: "catsitter",
+    macro_branch: "pet_home",
+    keywords: ["cat sitter", "pet sitter", "catsitter"],
+  },
+  {
+    category: "idraulico",
+    macro_branch: "pet_home",
+    keywords: ["idraulico", "idraulica"],
+  },
+  {
+    category: "elettricista",
+    macro_branch: "pet_home",
+    keywords: ["elettricista civile", "elettricista"],
+  },
+  {
+    category: "giardinaggio",
+    macro_branch: "pet_home",
+    keywords: ["giardiniere", "giardinaggio"],
+  },
+  {
+    category: "giardiniere",
+    macro_branch: "pet_home",
+    keywords: ["giardiniere"],
+  },
+  {
+    category: "pulizie",
+    macro_branch: "pet_home",
+    keywords: ["addetto alle pulizie", "pulizie"],
+  },
+  {
+    category: "stiro",
+    macro_branch: "pet_home",
+    keywords: ["stiratrice", "stiro", "lavanderia"],
+  },
+  {
+    category: "manutentore",
+    macro_branch: "pet_home",
+    keywords: ["manutentore", "operaio manutenzione"],
+  },
+  {
+    category: "ristorazione",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["cuoco", "aiuto cuoco", "ristorazione"],
+  },
+  {
+    category: "cameriere",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["cameriere", "lavapiatti"],
+  },
+  {
+    category: "barista",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["barista", "barman"],
+  },
+  {
+    category: "commerciale",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["commesso", "addetto vendita", "commerciale"],
+  },
+  {
+    category: "ai_engineer",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["intelligenza artificiale", "machine learning", "data scientist"],
+  },
+  {
+    category: "sviluppatore",
+    macro_branch: "lavoro_tradizionale",
+    keywords: ["sviluppatore software", "programmatore", "web developer"],
+  },
 ] as const;
 
 const RELEVANT =
-  /(?:^|[^a-z])(?:badante|colf|babysitter|baby\s*sitter|oss|socio[-\s]?sanitar|assistente\s+infermier|assistenza\s+anzian|caregiver|dog\s*sitter|pet\s*sitter|idraulic|elettricista|giardinier|camerier|barist|addetto(?:\s+\w+){0,3}\s+puliz|pulizie|domestico|domestica|stiro|lavapiatti)(?:[^a-z]|$)/i;
+  /(?:^|[^a-z])(?:badante|colf|babysitter|baby\s*sitter|\btata\b|oss|socio[-\s]?sanitar|assistente\s+infermier|assistenza\s+anzian|caregiver|dog\s*sitter|cat\s*sitter|pet\s*sitter|idraulic|elettricista|giardinier|camerier|barist|barman|addetto(?:\s+\w+){0,3}\s+puliz|pulizie|domestico|domestica|stiro|stiratrice|lavanderia|lavapiatti|manutentor|commesso|vendita|cuoco|ristorazion|sviluppator|programmat|developer|machine\s+learning|intelligenza\s+artificial|data\s+scientist)(?:[^a-z]|$)/i;
 
 const IRRELEVANT =
   /chimico|circuiti\s+stampati|disinfestant|macellator|miniera|trafila|statistica|database|network|account\s+executive|sales|marketing/i;
@@ -469,4 +586,127 @@ export async function scrapeEuresItaly(
   }
 
   return listings;
+}
+
+export type EuresDailyOptions = {
+  /** Minimo annunci per categoria (default 1). */
+  perCategory?: number;
+  resultsPerQuery?: number;
+  detailDelayMs?: number;
+};
+
+export type EuresDailyReport = {
+  listings: ScrapedListing[];
+  filled: string[];
+  missing: string[];
+};
+
+/**
+ * Quota giornaliera: ≥ `perCategory` annunci per ogni categoria prodotto.
+ * Assegna category/macro_branch in modo forzato (non dipende solo dall’heuristica titolo).
+ */
+export async function scrapeEuresDailyByCategory(
+  options?: EuresDailyOptions,
+): Promise<EuresDailyReport> {
+  const perCategory = options?.perCategory ?? 1;
+  const resultsPerQuery = options?.resultsPerQuery ?? 12;
+  const detailDelayMs = options?.detailDelayMs ?? 100;
+
+  const usedIds = new Set<string>();
+  const listings: ScrapedListing[] = [];
+  const filled: string[] = [];
+  const missing: string[] = [];
+
+  for (const target of DAILY_CATEGORY_TARGETS) {
+    console.log(`  → categoria ${target.category} (min ${perCategory})…`);
+    let got = 0;
+
+    for (const keyword of target.keywords) {
+      if (got >= perCategory) break;
+
+      let hits: EuresSearchHit[] = [];
+      try {
+        hits = await searchKeyword(keyword, resultsPerQuery);
+      } catch (err) {
+        console.warn(
+          `    query fallita "${keyword}":`,
+          err instanceof Error ? err.message : err,
+        );
+        continue;
+      }
+      await sleep(60);
+
+      const ranked = hits
+        .filter((h) => !usedIds.has(h.id))
+        .map((h) => {
+          const title = h.title ?? "";
+          const description = h.description ?? "";
+          const softOk =
+            !IRRELEVANT.test(title) &&
+            (isRelevant(title, description) ||
+              new RegExp(target.category.replace(/_/g, "[\\s_]?"), "i").test(
+                `${title} ${description} ${keyword}`,
+              ) ||
+              keyword
+                .split(/\s+/)
+                .some((w) => w.length > 3 && `${title} ${description}`.toLowerCase().includes(w.toLowerCase())));
+          return { hit: h, softOk };
+        })
+        .sort((a, b) => Number(b.softOk) - Number(a.softOk));
+
+      const isLastKeyword =
+        keyword === target.keywords[target.keywords.length - 1];
+
+      for (const { hit, softOk } of ranked) {
+        if (got >= perCategory) break;
+        if (!softOk) {
+          // Solo sull’ultima keyword: prendi qualcosa di non IRRELEVANT
+          if (
+            !(
+              isLastKeyword &&
+              got === 0 &&
+              !IRRELEVANT.test(hit.title ?? "")
+            )
+          ) {
+            continue;
+          }
+        }
+
+        usedIds.add(hit.id);
+        const detail = await fetchDetail(hit.id);
+        await sleep(detailDelayMs);
+
+        const raw = detailToRaw(hit, target.category, detail);
+        const mapped = transformRawToScrapedListing(raw);
+        if (!mapped) {
+          console.warn(`    skip transform: "${raw.title}"`);
+          continue;
+        }
+
+        mapped.category = target.category;
+        mapped.macro_branch = target.macro_branch;
+        listings.push(mapped);
+        got += 1;
+        console.log(`    + ${mapped.title.slice(0, 72)}`);
+      }
+    }
+
+    if (got >= perCategory) {
+      filled.push(target.category);
+    } else {
+      missing.push(target.category);
+      console.warn(
+        `    ⚠ nessun annuncio trovato oggi per "${target.category}"`,
+      );
+    }
+  }
+
+  console.log(
+    `  daily: filled=${filled.length}/${DAILY_CATEGORY_TARGETS.length}, missing=${missing.length}`,
+  );
+  if (missing.length) {
+    console.log(`  missing: ${missing.join(", ")}`);
+  }
+
+  return { listings, filled, missing };
 }

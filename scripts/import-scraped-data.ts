@@ -9,6 +9,7 @@
  *   npm run scrape:import -- --url https://…
  *   npm run scrape:import -- --max=30
  *   npm run scrape:import -- --purge-seeds      # nasconde i seed finti catalog-*
+ *   npm run scrape:daily                       # ≥1 annuncio/categoria (cron)
  */
 import { config } from "dotenv";
 import { resolve } from "node:path";
@@ -296,6 +297,7 @@ export async function importListings(
 function parseArgs(argv: string[]) {
   const dryRun = argv.includes("--dry-run");
   const purgeSeeds = argv.includes("--purge-seeds");
+  const daily = argv.includes("--daily");
   const urlIdx = argv.indexOf("--url");
   const url =
     urlIdx >= 0 && argv[urlIdx + 1] ? argv[urlIdx + 1] : undefined;
@@ -303,6 +305,11 @@ function parseArgs(argv: string[]) {
   const maxArg = argv.find((a) => a.startsWith("--max="));
   const maxListings = maxArg
     ? Number.parseInt(maxArg.split("=")[1] ?? "", 10)
+    : undefined;
+
+  const perCatArg = argv.find((a) => a.startsWith("--per-category="));
+  const perCategory = perCatArg
+    ? Number.parseInt(perCatArg.split("=")[1] ?? "", 10)
     : undefined;
 
   let source: ScrapeSource | undefined;
@@ -326,11 +333,16 @@ function parseArgs(argv: string[]) {
   return {
     dryRun,
     purgeSeeds,
+    daily,
     url,
     source,
     maxListings:
       maxListings && Number.isFinite(maxListings) && maxListings > 0
         ? maxListings
+        : undefined,
+    perCategory:
+      perCategory && Number.isFinite(perCategory) && perCategory > 0
+        ? perCategory
         : undefined,
   };
 }
@@ -370,9 +382,8 @@ export async function purgeFixtureListings(
 }
 
 async function main() {
-  const { dryRun, purgeSeeds, url, source, maxListings } = parseArgs(
-    process.argv.slice(2),
-  );
+  const { dryRun, purgeSeeds, daily, url, source, maxListings, perCategory } =
+    parseArgs(process.argv.slice(2));
 
   if (purgeSeeds) {
     console.log("→ Purge seed / fixture…");
@@ -380,16 +391,28 @@ async function main() {
     console.log(`  nascosti (rejected): ${n}`);
   }
 
-  console.log("→ Scrape…");
+  console.log(daily ? "→ Scrape giornaliero per categoria…" : "→ Scrape…");
   const scraped = await scrapeSampleSource({
     url,
     source,
     maxListings,
+    daily,
+    perCategory,
   });
   console.log(`  ${scraped.length} ScrapedListing validi`);
   console.log(
     `  di cui offro=${scraped.filter((s) => s.intent === "offro").length}, cerco=${scraped.filter((s) => s.intent !== "offro").length}`,
   );
+  if (daily) {
+    const byCat = new Map<string, number>();
+    for (const s of scraped) {
+      byCat.set(s.category, (byCat.get(s.category) ?? 0) + 1);
+    }
+    console.log("  per categoria:");
+    for (const [cat, n] of [...byCat.entries()].sort()) {
+      console.log(`    ${cat}: ${n}`);
+    }
+  }
 
   if (!scraped.length) {
     console.log("Niente da importare.");

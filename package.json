@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "scrape:import": "npx tsx scripts/import-scraped-data.ts"
+    "scrape:import": "npx tsx scripts/import-scraped-data.ts",
+    "scrape:daily": "npx tsx scripts/import-scraped-data.ts --daily"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
